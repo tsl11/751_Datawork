@@ -3,38 +3,42 @@ library(purrr)
 library(N2H4)
 library(stringr)
 
-strDate = c("2014-11-28")
-endDate = c("2014-11-28")
+strDate = c("2016-09-20")
+endDate = c("2016-12-28")
+
+strDateo = gsub("-",".",strDate)
+strDated = gsub("-","",strDate)
+endDateo = gsub("-",".",endDate)
+endDated = gsub("-","",endDate)
 
 strTime<-Sys.time()
 midTime<-Sys.time()
 
-qlist<-c("정윤회","문건")
+qlist<-c("최순실","정유라")
 newsList = list()
 
 for (i in 1:length(qlist)){
-  dir.create("./data",showWarnings=F)
-  dir.create(paste0("./data/news_",qlist[i]),showWarnings=F)
   
-  strDateo = gsub("-",".",strDate)
-  strDated = gsub("-","",strDate)
-  endDateo = gsub("-",".",endDate)
-  endDated = gsub("-","",endDate)
-  
-  print(paste0(date," / ",qlist[i], "/ start Time: ", strTime," / spent Time: ", Sys.time()-midTime," / spent Time at first: ", Sys.time()-strTime))
+  print(paste0("/ start Time: ", strTime," / spent Time: ", Sys.time()-midTime," / spent Time at first: ", Sys.time()-strTime))
   midTime<-Sys.time()
-  pageUrli = paste0("https://search.naver.com/search.naver?where=news&query=",qlist[i],"&ie=utf8&sm=tab_srt&sort=1&photo=0&field=0&reporter_article=&pd=3&ds=",strDateo,"&de=",endDateo,"&docid=&nso=so%3Ar%2Cp%3Afrom",strDated,"to",endDated,"%2Ca%3Aall&mynews=0&mson=0&refresh_start=0&related=0")  
+  pageUrli = paste0("https://search.naver.com/search.naver?where=news&query=최순실&ie=utf8&sm=tab_srt&sort=1&photo=0&field=0&reporter_article=&pd=3&ds=",strDateo,"&de=",endDateo,"&docid=&nso=so%3Ar%2Cp%3Afrom",strDated,"to",endDated,"%2Ca%3Aall&mynews=0&mson=0&refresh_start=0&related=0")  
   
   maxArticle = read_html(pageUrli) %>% 
     html_node("#main_pack > div.news.mynews.section > div > div.title_desc.all_my > span") %>%
-    html_text() %>% str_extract(.,"\\d{3,}") %>% as.integer()
+    html_text() %>% str_extract(.,"\\d{3,}\\,\\d{3,}") %>% str_replace(",","") %>% as.integer()
   
-  for (i in 1:{maxArticle %/% 10}){
+  for (i in 3472:{maxArticle %/% 10}){
     start = (i-1)*10 + 1
+    print(paste0(i," / ",{maxArticle %/% 10}, "/ start Time: ", strTime," / spent Time: ", Sys.time()-midTime," / spent Time at first: ", Sys.time()-strTime))
+    midTime<-Sys.time()
+    
     pageUrl = paste0(pageUrli,"&start=",start)
     newsList[[i]] = getUrlListByQuery(pageUrl)
   }
 }
+
+
+## qlist[1] 8273까지 돌렸음 (11/9/2017)
 
 page_content = map_df(newsList, function(x) x) 
 page_content = lapply(page_content$news_links, function(x) getContent(x))
