@@ -1,7 +1,9 @@
 library(rvest)
 library(purrr)
+devtools::install_github("forkonlp/N2H4")
 library(N2H4)
 library(stringr)
+library(KoNLP)
 
 strDate = c("2016-09-20")
 endDate = c("2016-12-28")
@@ -27,7 +29,7 @@ for (i in 1:length(qlist)){
     html_node("#main_pack > div.news.mynews.section > div > div.title_desc.all_my > span") %>%
     html_text() %>% str_extract(.,"\\d{3,}\\,\\d{3,}") %>% str_replace(",","") %>% as.integer()
   
-  for (i in 3472:{maxArticle %/% 10}){
+  for (i in 8274:{maxArticle %/% 10}){
     start = (i-1)*10 + 1
     print(paste0(i," / ",{maxArticle %/% 10}, "/ start Time: ", strTime," / spent Time: ", Sys.time()-midTime," / spent Time at first: ", Sys.time()-strTime))
     midTime<-Sys.time()
@@ -38,7 +40,7 @@ for (i in 1:length(qlist)){
 }
 
 
-## qlist[1] 8273까지 돌렸음 (11/9/2017)
+## qlist[1] 14902까지 돌렸음 (11/9/2017)
 
 page_content = map_df(newsList, function(x) x) 
 page_content = lapply(page_content$news_links, function(x) getContent(x))
