@@ -1,15 +1,16 @@
 library(rvest)
 library(dplyr)
+library(purrr)
 library(N2H4)
 library(lubridate)
 ### weekly click 
 
 # Setting date
-strDate = ISOdate(2016,09,23)
-df_date = seq(strDate, by = "week", length.out = 16)
+strDate = ISOdate(2014,11,28)
+df_date = seq(strDate, by = "day", length.out = 120)
 df_date = sapply(df_date, function(x) format(as.Date(x), "%Y%m%d"))
-base_url = "http://news.naver.com/main/ranking/popularWeek.nhn?rankingType=popular_week&sectionId=000&date="  
-url_list = list()
+base_url = "http://news.naver.com/main/ranking/popularDay.nhn?rankingType=popular_day&sectionId=000&date="  
+url_list2 = list()
 
 strTime<-Sys.time()
 midTime<-Sys.time()
@@ -24,13 +25,13 @@ for(i in 1:length(df_date)){
   ranking_urls = html_nodes(news_data, "dt")
   ranking_urls = ranking_urls %>% html_nodes("a") %>% html_attr("href") %>% 
     map(function(x) paste0("http://news.naver.com",x))
-  url_list[[i]] = ranking_urls
+  url_list2[[i]] = ranking_urls
 }
 
 cont = url_list %>% unlist(., recursive = FALSE) %>%
   lapply(., getContent)
 
-ranking_news =  data_frame(
+dailyrank16 =  data_frame(
   url = map(cont, "url"),
   datetime = map(cont, "datetime") %>% map_if(is.character, function(x) x=NA),
   press = map(cont, "press"),
@@ -38,7 +39,7 @@ ranking_news =  data_frame(
   body = map(cont, "body")
 )
 
-ranking_news = sapply(ranking_news, unlist)
-write.csv(ranking_news, file = "naver_weeklyClick000_2016.csv")
+dailyrank16 = sapply(dailyrank16, unlist)
+write.csv(dailyrank16, file = "naver_dailyClick_2016.csv")
 
 
