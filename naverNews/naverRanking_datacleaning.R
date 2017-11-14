@@ -5,8 +5,8 @@ library(purrr)
 library(stringr)
 library(KoNLP)
 library(ggplot2)
-library(lubridate)
 library(tidyr)
+library(varhandle)
 
 ## loading data
 weeklyClick_2016 = read.csv("naver_weeklyClick_2016.csv")
