@@ -9,6 +9,7 @@ library(lubridate)
 library(stringr)
 library(base64enc)
 library(reshape2)
+library(varhandle)
 
 useSejongDic()
 buildDictionary(ext_dic = c('sejong', 'woorimalsam'),user_dic = data.frame("term"=c("이대", "최순실", "박근혜", "태블릿", "정유라"), "tag"=c("nqq", "nqpb", "nqpb", "f", "nqpb")))
@@ -46,8 +47,12 @@ fbmedia =  bind_rows(fbmedia, chosun, jtbc, newstapa, nocut, sbsnews) %>%
   mutate(created_time = as.Date(created_time)) %>%
   arrange(desc(created_time))
 
+##### filtering fbmedia by keyword
+setwd("/Users/tammylee/751_Datawork/facebook/csv_data")
+fbmedia = read.csv("fbmedia_combined.csv")
 
 fbmedia_2016 = fbmedia %>%
+  mutate(created_time = unfactor(created_time) %>% as.Date()) %>%
   filter(created_time > as.Date("2016-09-19") & created_time < as.Date("2017-01-06"))
 
 scandal_2016 = c("최순실", "정유라", "이대", "미르재단", "국정농단", "K스포츠재단", "박근혜", "비선","광화문")
@@ -59,7 +64,7 @@ fbsummary_2016 = fbmedia_2016 %>%
   group_by(created_time) %>% 
   summarise(nrows = n(), shares = sum(shares_count), likes = sum(likes_count), 
             comments = sum(comments_count), totals = sum(activity_count)) %>%
-  mutate(totals = likes + shares + comments)
+  mutate(totals = likes + shares + comments) %>% arrange(totals) %>% na.omit()
 
 fbkeyword_2016 = fbmedia_2016$message %>% sapply(function(x) na.omit(x) %>% extractNoun())
 names(fbkeyword_2016) <- c(1:4846)  
@@ -68,8 +73,8 @@ fbkeyword_2016 = unlist(fbkeyword_2016) %>% as.data.frame() %>% map_df(str_repla
 ##facebook 2014 data
 
 
-fbmedia_2014 = fbmedia %>%
-  mutate(created_time = as.Date(created_time)) %>%
+fbmedia_2014 = fbmedia %>% 
+  mutate(created_time = unfactor(created_time) %>% as.Date()) %>%
   filter(created_time > as.Date("2014-11-27") & created_time < as.Date("2015-03-06"))
 
 scandal_2014 = c("정윤회", "문건", "유출", "문건유출", "조응천", "최경위", "박관천", "비선", "문고리","십상시")
@@ -81,9 +86,11 @@ fbsummary_2014 = fbmedia_2014 %>%
   group_by(created_time) %>% 
   summarise(nrows = n(), shares = sum(shares_count), likes = sum(likes_count), 
             comments = sum(comments_count), totals = sum(activity_count)) %>%
-  mutate(totals = likes + shares + comments)
+  mutate(totals = likes + shares + comments) %>% na.omit()
 
+fbsummary = bind_rows(fbsummary_2014, fbsummary_2016)
 
+save(fbsummary, file = "fbsummary.Rdata")
 
 # visualize evolution in metric
 library(ggplot2)

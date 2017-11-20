@@ -25,3 +25,6 @@ date16 = sapply(seq(ISOdate(2016,09,17), by = "day", length.out = 16*7), functio
 
 daily_wrank$date = c(date14,date16) %>% ymd()
 data = full_join(data, daily_wrank, by = c("date"))
+data = data %>% select(-keyword)
+
+save(data, file = "data.csv")
