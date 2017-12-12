@@ -9,7 +9,7 @@ library(lubridate)
 library(stringr)
 library(base64enc)
 library(reshape2)
-library(varhandle)
+library(varhandle)in
 
 useSejongDic()
 buildDictionary(ext_dic = c('sejong', 'woorimalsam'),user_dic = data.frame("term"=c("이대", "최순실", "박근혜", "태블릿", "정유라"), "tag"=c("nqq", "nqpb", "nqpb", "f", "nqpb")))
@@ -18,6 +18,18 @@ buildDictionary(ext_dic = c('sejong', 'woorimalsam'),user_dic = data.frame("term
 
 
 ## Cleaning each data frame
+sisain = sisain %>% 
+  mutate(activity_count = shares_count + likes_count + comments_count,
+         X = 1:nrow(.)) %>%
+  arrange(desc(activity_count)) %>%
+  select(-c(X,from_id, id))
+
+mediawatch = mediawatch %>% 
+  mutate(activity_count = shares_count + likes_count + comments_count,
+         X = 1:nrow(.)) %>%
+  arrange(desc(activity_count)) %>%
+  select(-c(X,from_id, id))
+
 chosun = chosun %>% 
   mutate(activity_count = shares_count + likes_count + comments_count,
          X = 1:nrow(.)) %>%
@@ -60,6 +72,11 @@ index_2016 = fbmedia_2016$message %>% lapply(function(x) str_detect(x, scandal_2
 
 fbmedia_2016 = fbmedia_2016[index_2016, ] 
 
+
+index_2016 = fbmedia_2016$message %>% lapply(function(x) str_detect(x, scandal_2016) %>% any()) %>% unlist()
+fbmedia_2016 = fbmedia_2016[index_2016, ] 
+
+
 fbsummary_2016 = fbmedia_2016 %>% 
   group_by(created_time) %>% 
   summarise(nrows = n(), shares = sum(shares_count), likes = sum(likes_count), 
@@ -91,6 +108,8 @@ fbsummary_2014 = fbmedia_2014 %>%
 fbsummary = bind_rows(fbsummary_2014, fbsummary_2016)
 
 save(fbsummary, file = "fbsummary.Rdata")
+
+
 
 # visualize evolution in metric
 library(ggplot2)
@@ -154,4 +173,74 @@ library(scales)
 ggplot(df, aes(x = month, y = x, group = metric)) + geom_line(aes(color = metric)) + 
   scale_x_date(date_breaks = "years", labels = date_format("%Y"), limits = as.Date(c('2014-04-16','2016-10-28'))) + 
   scale_y_log10("Average count per post", breaks = c(10, 100, 1000, 10000, 50000)) + theme_bw() + theme(axis.title.x = element_blank())
+
+
+############ newstapa data cleaning
+newstapa_2014 = fbmedia_2014 %>% filter(from_name %in% c("Newstapa"))
+newstapa_2016 = fbmedia_2016 %>% filter(from_name %in% c("Newstapa"))
+
+
+newstapa_2014 = newstapa_2014 %>% 
+  mutate(created_time = ymd(created_time)) %>%
+  group_by(created_time) %>% 
+  summarise(nrows = n(), shares = sum(shares_count), likes = sum(likes_count), 
+            comments = sum(comments_count), totals = sum(activity_count)) %>%
+  mutate(totals = likes + shares + comments) %>% arrange(created_time) %>% na.omit()
+
+newstapa_2016 = newstapa_2016 %>% 
+  group_by(created_time) %>% 
+  summarise(nrows = n(), shares = sum(shares_count), likes = sum(likes_count), 
+            comments = sum(comments_count), totals = sum(activity_count)) %>%
+  mutate(totals = likes + shares + comments) %>% arrange(created_time) %>% na.omit()
+
+
+W14 = ISOdate(2014,11,22) %>% seq(., by = "week", length.out = 16)
+W16 = ISOdate(2016,09,23) %>% seq(., by = "week", length.out = 16) 
+
+index = list()
+
+for(i in 1:{length(W14)-1}){
+  index[[i]] = newstapa_2014$created_time %>% map_lgl(function(x) {x<W14[[i+1]] & x >=W14[[i]]})
+}
+
+index = lapply(index, function(x) as.integer(x))
+names(index) = c(paste0("week", 1:{length(W14)-1}))
+index = as.data.frame(index) 
+newstapa_2014 = cbind(newstapa_2014, index) %>%
+  gather(., week, value, week1:week15) %>%
+  select(-value) %>% 
+  mutate(week = lapply(week, function(x) str_replace(x, "week", "")) %>% lapply(., function(x) as.integer(x)))
+
+
+index = list()
+week = array(NA, c(length(newstapa_2016$created_time), 1))
+
+for(i in 1:{length(W16)-1}){
+  index[[i]] = newstapa_2016$created_time %>% map_lgl(function(x) {x<W16[[i+1]] & x >=W16[[i]]})
+}
+
+index = lapply(index, function(x) as.integer(x))
+names(index) = c(paste0("week", 1:{length(W16)-1}))
+index = as.data.frame(index) 
+newstapa_2016 = cbind(newstapa_2016, index) %>%
+  gather(., week, value, week1:week15) %>%
+  mutate(week = lapply(week, function(x) str_replace(x, "week", "")) %>% lapply(., function(x) as.integer(x)))
+
+ntp2016 = newstapa_2016 %>%
+  mutate(week = unlist(week)) %>%
+  select(nrows, totals, week, value) %>%
+  filter(value!=0) %>%
+  select(-value) %>% 
+  group_by(week) %>% 
+  summarise(fbp_nwtp = sum(nrows), fbt_nwtp = sum(totals)) %>%
+  arrange(week) %>% 
+  mutate(fbp_nwtp_lag1 = lag(fbp_nwtp, order_by = week))
+
+newstapa_2016 = newstapa_2016 %>%
+  mutate(week = unlist(week)) %>%
+  select(nrows, totals, week) %>%
+  group_by(week) %>% 
+  summarise(fbp_nwtp = sum(nrows), fbt_nwtp = sum(totals)) %>%
+  arrange(week) %>% 
+  mutate(fbp_nwtp_lag1 = lag(fbp_nwtp, order_by = week))
 

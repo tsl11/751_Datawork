@@ -29,6 +29,12 @@ data_big %>% mutate(n_total = totals/10) %>%
   labs(x = "Date", y = "Value", color="Variable", title = "2014 Daily trends of facebook and articles") +
   scale_color_hue(labels = c("facebook shares", "# of articles")) + scale_y_continuous(limits = c(0, 750))
 
+data_big %>%
+  ggplot(aes(x=date, y=nrows))+
+  geom_line() + scale_x_date(limits = c(ymd(20160920), ymd(20170106))) + 
+  labs(x = "Date", y = "Number of Articles", title = "2016 Daily trends of number of articles published") +
+  theme_classic() 
+
 d14 = sapply(seq(ISOdate(2014,11,28), by = "week", length.out = 16), function(x) format(as.Date(x), "%Y%m%d"))
 d16 = sapply(seq(ISOdate(2016,09,23), by = "week", length.out = 16), function(x) format(as.Date(x), "%Y%m%d"))               
 
@@ -99,6 +105,7 @@ weekly = weekly %>% mutate(rank_portion = (rank.art.portion*30)/50) %>%
 library(latticeExtra)
 weekly14 = weekly %>% filter(year==2014)
 weekly16 = weekly %>% filter(year==2016)
+weekly16 = full_join(weekly16, ntp2016, by = c("week"))
 ############2014################################################
 ## narticle ~ rank_portion
 obj1 <- xyplot(narticle ~ week, weekly14, type = "l" , lwd=2)
@@ -131,6 +138,28 @@ doubleYScale(obj13, obj14, text = c("facebook totals", "portion of top ranked ar
 obj15 <- xyplot(narticle ~ week, weekly16, type = "l" , lwd=2)
 obj16 <- xyplot(fbtotals ~ week, weekly16, type = "l", lwd=2)
 doubleYScale(obj15, obj16, text = c("# of articles", "facebook totals") , add.ylab2 = TRUE)
+
+############Daily ################################################
+
+data14 = data_big %>% filter(date < ymd(20150305))
+data16 = data_big %>% filter(date > ymd(20150328))
+## narticle ~ facebook
+obj21 <- xyplot(narticle ~ date, data14, type = "l" , lwd=2)
+obj22 <- xyplot(totals ~ date, data14, type = "l", lwd=2)
+doubleYScale(obj21, obj22, text = c("# of articles", "facebook totals") , add.ylab2 = TRUE)
+
+obj31 <- xyplot(narticle ~ date, data16, type = "l" , lwd=2)
+obj32 <- xyplot(totals ~ date, data16, type = "l", lwd=2)
+doubleYScale(obj31, obj32, text = c("# of articles", "facebook totals") , add.ylab2 = TRUE)
+
+#############Daily fbpostings and narticle############
+obj21 <- xyplot(narticle ~ week, weekly14, type = "l" , lwd=2)
+obj22 <- xyplot(fbpostings ~ week, weekly14, type = "l", lwd=2)
+doubleYScale(obj21, obj22, text = c("# of articles", "facebook postings") , add.ylab2 = TRUE)
+
+obj31 <- xyplot(narticle ~ week, weekly16, type = "l" , lwd=2)
+obj32 <- xyplot(fbpostings ~ week, weekly16, type = "l", lwd=2)
+doubleYScale(obj31, obj32, text = c("# of articles", "facebook postings") , add.ylab2 = TRUE)
 
 
 
